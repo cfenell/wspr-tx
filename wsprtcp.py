@@ -45,18 +45,39 @@ def sample_producer(msg, base_freq, sample_rate):
 
     return(wave)
     
-if __name__ == '__main__':    
+if __name__ == '__main__':
+
+    ### Set up TCP server
+    print(f'wsprtcp: Creating sample server on {tcp_host}:{tcp_port}')
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind((tcp_host, tcp_port))
+    s.listen(1)
+    conn, addr = s.accept()
 
     ### Encode message
+    print(f'wsprtcp: Encoding message {callsign} {locator} {dbm}')
     msg = encode.wspr_encode(callsign, locator, dbm)
 
-    ### Pre-create waveform (this takes time)
+    ### Pre-create waveform
+    print(f'wsprtcp: Creating waveform f={base_freq} Hz at {sample_rate} Hz. This will take time.')
     wave=sample_producer(msg, base_freq, sample_rate):
 
-    
+    ### Main loop
+    for loop_no in range(nloops):
 
+        ## Wait for time to start Tx  
+        print(f'wsprtcp: Waiting to start cycle {loop_no+1} of {nloops}')
 
+        while(True):
+            if time.time() % 120 < 0.05:
+                break
+            time.sleep(0.01)
 
-
-    
+        print(f'wsprtcp: Transmitting message')
+        conn.sendall(wave)
+        print(f'wsprtcp: Done cycle {loop_no+1} of {nloops}')
+        
+    ### Done
+    conn.close()
+    print('wsprtcp: Done')
 
