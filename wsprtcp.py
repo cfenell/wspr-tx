@@ -135,15 +135,6 @@ if __name__ == '__main__':
     cons.terminate()
     print('wsprtcp: Done')
 
-    
-
-
-
-
-
-
-
-
 
 
 
