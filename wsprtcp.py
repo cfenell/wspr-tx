@@ -2,20 +2,21 @@
 
 import encode
 import numpy as np
+import mmap
 import time
 import socket
 
 
 ### fl2k_tcp config
 tcp_host = '127.0.0.1'
-tcp_port = 4242
+tcp_port = 1234
 
 ### Message defaults
 callsign = 'SM2YHP'
 locator = 'KP07'
 dbm = 30
 base_freq = 7038600
-sample_rate = 16e6
+sample_rate = 15e6
 nloops = 5
 
 
@@ -29,20 +30,19 @@ def sample_producer(msg, base_freq, sample_rate):
 
     assert len(msg) == msg_len
 
-    wave = np.array(zeros(msg_len * baud_len), dtype=np.uint8)
+    wave = mmap.mmap(-1, msg_len * baud_len)
     baud_no=1
     sample0=0
-    sample=np.arange(baud_len)
+    si=np.arange(baud_len)
     
     for baud in msg:
         freq = base_freq + baud*fsk_shift;
-        phases = 2*np.pi*freq*(sample0 + sample)/sample_rate
+        phases = 2*np.pi*freq*(sample0 + si)/sample_rate
         wave[sample0:sample0+baud_len] = ( 128.0 + 128.0 * np.cos(phases) ).astype(np.uint8)
         sample0=sample0 + baud_len
         print(f'sample_producer: Done baud {baud_no} FSK shift {baud}')
         baud_no=baud_no + 1
         
-
     return(wave)
     
 if __name__ == '__main__':
@@ -60,7 +60,7 @@ if __name__ == '__main__':
 
     ### Pre-create waveform
     print(f'wsprtcp: Creating waveform f={base_freq} Hz at {sample_rate} Hz. This will take time.')
-    wave=sample_producer(msg, base_freq, sample_rate):
+    wave=sample_producer(msg, base_freq, sample_rate)
 
     ### Main loop
     for loop_no in range(nloops):
@@ -74,10 +74,25 @@ if __name__ == '__main__':
             time.sleep(0.01)
 
         print(f'wsprtcp: Transmitting message')
-        conn.sendall(wave)
+
+        bufstart=0
+        lbuf=1280*1024
+        stop = False
+        while True:
+            bufend = bufstart + lbuf
+            if bufend > len(wave):
+                bufend = len(wave)
+                stop = True
+            buf=wave[bufstart:bufend]
+            conn.sendall(buf)
+            if stop:
+                break
+            bufstart=bufend
+            
         print(f'wsprtcp: Done cycle {loop_no+1} of {nloops}')
         
     ### Done
+    wave.close()
     conn.close()
     print('wsprtcp: Done')
 
