@@ -14,6 +14,6 @@ Dependencies:
 
 Usage:
 ======
-* Make sure to edit config.py
+* Make sure to edit wspr_config.py
 * python3 wsprtx.py
 
