@@ -47,11 +47,11 @@ if __name__ == '__main__':
     conn, addr = s.accept()
 
     ### Encode message
-    print(f'wsprtcp: Encoding message {callsign} {locator} {dbm}')
+    print(f'wsprtcp: Encoding message {wspr_config.callsign} {wspr_config.locator} {wspr_config.dbm}')
     msg = encode.wspr_encode(wspr_config.callsign, wspr_config.locator, wspr_config.dbm)
 
     ### Pre-create waveform
-    print(f'wsprtcp: Creating waveform f={base_freq} Hz at {sample_rate} Hz. This will take time.')
+    print(f'wsprtcp: Creating waveform f={wspr_config.base_freq} Hz at {wspr_config.sample_rate} Hz. This will take time.')
     wave, baud_len=sample_producer(msg, wspr_config.base_freq, wspr_config.sample_rate) #mmap
 
     ### Main loop
