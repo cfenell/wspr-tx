@@ -23,13 +23,20 @@ def sample_producer(msg, base_freq, sample_rate):
     assert len(msg) == msg_len
 
     ## Open waveform file if exists
-    filename=f'/tmp/wspr_{base_freq}_{sample_rate}.dat'
+    wfile=f'/tmp/wspr_{base_freq}_{sample_rate}.dat'
 
-    if isfile(filename):
-        return(np.memmap(filename, mode='r', dtype='uint8'), baud_len)
-
+    if isfile(wfile):
+        wave=np.memmap(filename=wfile, dtype='uint8')
+        if len(wave)==msg_len*baud_len:
+            print('sample_producer: waveform file found.')
+            return(wave, baud_len)
+        else:
+            # Bad file, will be overwritten next
+            del(wave)           
+        
     ## Else create waveform file
-    wave = np.memmap(filename, mode='w+', dtype='uint8', shape = (1,baud_len*sample_rate))
+    print('sample_producer: Creating waveform file. This will take time.')
+    wave = np.memmap(filename=wfile, mode='w+', dtype='uint8', shape=(msg_len*baud_len))
     baud_no=1
     sample0=0
     si=np.arange(baud_len)
@@ -55,7 +62,7 @@ if __name__ == '__main__':
     msg = encode.wspr_encode(wspr_config.callsign, wspr_config.locator, wspr_config.dbm)
 
     ## Pre-create waveform
-    print(f'wsprtcp: Creating waveform f={wspr_config.base_freq} Hz at {wspr_config.sample_rate} Hz. This will take time.')
+    print(f'wsprtcp: Getting waveform f={wspr_config.base_freq} Hz at {wspr_config.sample_rate} Hz.')
     wave, baud_len=sample_producer(msg, wspr_config.base_freq, wspr_config.sample_rate) #mmap
 
     ## Set up TCP server
@@ -66,7 +73,7 @@ if __name__ == '__main__':
 
     ## Spawn the fl2k client
     client_args=[wspr_config.tcp_client,'-a',wspr_config.tcp_host,'-p',f'{wspr_config.tcp_port}','-d',f'{wspr_config.fl2k_dev}','-s',f'{wspr_config.sample_rate}']
-    print('wsprtcp: Spawning ' + client_args)
+    print(f'wsprtcp: Spawning {client_args}')
     tcp_client=subprocess.Popen(client_args)
 
     ## Connect client
@@ -83,7 +90,7 @@ if __name__ == '__main__':
             time.sleep(0.01)
 
         ## Transmit one sequence
-        print(f'wsprtcp: Transmitting message')
+        print('wsprtcp: Transmitting message')
         bufstart=0
         stop = False
         while True:
